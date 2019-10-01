@@ -3,6 +3,9 @@
  
 int blueTx=11;   //Tx (보내는핀 설정)at
 int blueRx=10;   //Rx (받는핀 설정)
+int redPin = 9;
+int greenPin = 8;
+int bluePin = 7;
 SoftwareSerial mySerial(blueTx, blueRx);  
 //시리얼 통신을 위한 객체선언
 
@@ -25,21 +28,36 @@ void loop() {
   //ECHO pin : HIGH-> LOW 간격 측정
   cm = microsecondsToCentimeters(duration);  
   //거리(cm)로 변환
-  if (mySerial.available()) {
-    mode += mySerial.read();
+  while (mySerial.available()) {
+    char myChar = (char)mySerial.read();
+    mode += myChar;
+    delay(5); 
   }
   
   mySerial.print(cm);
   mySerial.print("cm\n");
   cm = 0;
-  
-  if (mode == "red") {
-    
-  } else if (mode == "green") {
-    
-  } else if (mode == "blue") {
-    
+  if (!mode.equals("")) {
+    if (mode.equals("red")) {
+      analogWrite(redPin, 255);
+      analogWrite(greenPin, 0);
+      analogWrite(bluePin, 0);
+    } else if (mode.equals("green")) {
+      analogWrite(redPin, 0);
+      analogWrite(greenPin, 255);
+      analogWrite(bluePin, 0);
+    } else if (mode.equals("blue")) {
+      analogWrite(redPin, 0);
+      analogWrite(greenPin, 0);
+      analogWrite(bluePin, 255);
+    } else {
+      analogWrite(redPin, 0);
+      analogWrite(greenPin, 0);
+      analogWrite(bluePin, 0);
+    }
   }
+  
+  mode = "";
   delay(300);  //0.3초 대기 후 다시 측정 
 }
 
