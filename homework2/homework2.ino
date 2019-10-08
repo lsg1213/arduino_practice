@@ -10,7 +10,6 @@ String myString=""; // 받는 문자열
 
 void setup() {
   mySerial.begin(9600); //블루투스 시리얼
-  servo.attach(22);
   mySerial.println("Enter the up of down");
   mySerial.println("up = angle + 15");
   mySerial.println("down = angle - 15");
@@ -26,26 +25,32 @@ void loop() {
     delay(5);           //수신 문자열 끊김 방지
   }
   if (!myString.equals("")) {
+    mySerial.print("Input value: ");
+    mySerial.println(myString);
     if (myString != "up" && myString != "down") {
       myString = "";
       mySerial.println("wrong operation!!");
     }
     else if (myString == "up") {
+      servo.attach(24, 500, 1500);
       myString = "";
       for(pos = 0; pos < 15; pos += 1) {
         servo.write(angle++);
-        delay(70);
+        delay(15);
       }
       mySerial.print("+15 ");
       mySerial.println(angle);
+      servo.detach();
     } else if (myString == "down") {
+      servo.attach(24, 500, 1500);
       myString = "";
       for(pos = 15; pos>0; pos-=1) {                                
         servo.write(angle--);
-        delay(70);
+        delay(15);
       }
       mySerial.print("-15 ");
       mySerial.println(angle);
+      servo.detach();
     }
   }
   delay(100);
