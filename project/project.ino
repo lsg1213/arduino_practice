@@ -43,6 +43,7 @@ void setting() {
       mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
     }
   }
+  numReceipt = 1;
   for (int i = 2 ; i <= 5 ; i++) {
     mySerial.print(i);
     mySerial.println("번째 재료를 몇 분 후에 넣을까요? 만약 그만 넣으려면 0을 입력하세요");
