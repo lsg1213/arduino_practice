@@ -12,6 +12,7 @@ unsigned long startTime = 0;
 unsigned long now = 0;
 int receipt[6] = {0,0,0,0,0,0};
 int numReceipt = 0;
+int num = 0;
 bool boil = false;
 SoftwareSerial mySerial(blueTx, blueRx);
 unsigned long cookStartTime = 0;
@@ -57,6 +58,13 @@ void setting() {
     }
     receipt[i] = Time;
     numReceipt++;
+  }
+  num = numReceipt;
+  for (int i = 1 ; i <= numReceipt ; i++) {
+    mySerial.print(i);
+    mySerial.print("번째 재료는 ");
+    mySerial.print(receipt[i]);
+    mySerial.println("분뒤에 투하");
   }
   mySerial.println("현재 시각을 적어주세요 ex)0800, 1400");
   while(true) {
@@ -134,9 +142,12 @@ bool cooking(int num) {
   unsigned int a = receipt[num - numReceipt + 1];
   
   if (a * 60 * 1000 + cookStartTime <= millis()) {
+    Serial.println(a);
+    check();
     cookStartTime += a * 60 * 1000;
-    mySerial.print(numReceipt);
+    mySerial.print(num - numReceipt + 1);
     mySerial.println("번째 재료를 투하합니다.");
+    
     putIngredient();
     numReceipt--;
   }
@@ -147,6 +158,7 @@ void reset() {
   state = 0;
   pick = 0;
   startTime = 0;
+  num = 0;
   now = 0;
   cookStartTime = 0;
   for (int i = 0 ; i < 6 ; i++) receipt[i] = 0;
@@ -165,6 +177,8 @@ void check() {
   Serial.println(mlx.readObjectTempC());
   Serial.print("현재 조리 번호:");
   Serial.println(numReceipt);
+  Serial.print("cookStartTime:");
+  Serial.println(cookStartTime);
 }
 void loop() {
   switch(state) {
@@ -175,6 +189,7 @@ void loop() {
           setting();
           state = 1;
           mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
+          
           break;
         case 2:
           reset();
@@ -213,7 +228,7 @@ void loop() {
           }
         }
       }
-      int num = numReceipt;
+      
       if(!cooking(num)) {
         reset();
         mySerial.println("요리 끝! 맛있게 드세요");
