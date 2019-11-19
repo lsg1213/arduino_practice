@@ -25,7 +25,7 @@ void setting() {
       mySerial.println("잘못된 시각을 입력했습니다. 다시 입력해주세요 ex) 0800, 1400");
       continue;
     } else {
-      now = (now / 100 * 60 * 60 * 1000) + (now % 100 * 60 * 1000);
+      startTime = (startTime / 100 * 60 * 60 * 1000) + (startTime % 100 * 60 * 1000);
       break;
     }
   }
@@ -43,12 +43,12 @@ void setting() {
       mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
     }
   }
-  for (int i = 1 ; i <= 5 ; i++) {
+  for (int i = 2 ; i <= 5 ; i++) {
     mySerial.print(i);
     mySerial.println("번째 재료를 몇 분 후에 넣을까요? 만약 그만 넣으려면 0을 입력하세요");
     while(!mySerial.available());
     int Time = mySerial.parseInt();
-    if (Time < 1000 or Time > 0) {
+    if (Time > 1000 or Time < 0) {
       mySerial.println("설정한 시간이 너무 크거나 작습니다.\n 다시 입력하세요. 1~1000");
       continue;
     } else if (Time == 0) {
@@ -69,8 +69,9 @@ void setting() {
       break;
     }
   }
-  startTime = (startTime - now + 86400000) % 86400000;
-  now = millis();
+  startTime = millis() + (startTime - now + 86400000) % 86400000;
+  
+  mySerial.println("작동을 시작합니다.");
 }
 void putIngredient() {
   // ----------------------------
@@ -120,7 +121,6 @@ bool menu() {
 }
 
 bool readTemp() {
-
   Serial.print(mlx.readObjectTempC());
   Serial.println("*C"); //테스팅용, 삭제 요망
   if (mlx.readObjectTempC() > 85.0) {
@@ -130,10 +130,13 @@ bool readTemp() {
 }
 
 bool cooking(int num) {
+  unsigned int a = receipt[num - numReceipt + 1];
   
-  if (receipt[num - numReceipt + 1] * 60 * 1000 <= cookStartTime) {
+  if (a * 60 * 1000 + cookStartTime <= millis()) {
+    cookStartTime += a * 60 * 1000;
+    mySerial.print(numReceipt);
+    mySerial.println("번째 재료를 투하합니다.");
     putIngredient();
-    
     numReceipt--;
   }
 
@@ -154,6 +157,14 @@ void setup() {
   mySerial.begin(9600);
   mlx.begin();  //mlx모듈을 읽어들이기 시작합니다.
 }
+void check() {
+  Serial.print("세팅 시간:");
+  Serial.println(startTime);
+  Serial.print("온도:");
+  Serial.println(mlx.readObjectTempC());
+  Serial.print("현재 조리 번호:");
+  Serial.println(numReceipt);
+}
 void loop() {
   switch(state) {
     case 0:
@@ -162,6 +173,7 @@ void loop() {
         case 1:
           setting();
           state = 1;
+          mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
           break;
         case 2:
           reset();
@@ -173,9 +185,17 @@ void loop() {
           break;
       }
     case 1:
+      if (mySerial.available()) {
+        if (mySerial.parseInt() == 0) {
+          reset();
+        }
+      }
+      now = millis();
       if (startTime <= now) {
-         state = 2;
-         break;
+        mySerial.println("요리를 시작합니다.");
+        cookStartTime = millis();
+        state = 2;
+        break;
       }
       return;
     case 2:
@@ -187,6 +207,7 @@ void loop() {
           // 0.5초마다 읽기
           previousTime = currentTime;
           if(!readTemp()) {
+            Serial.println("온도 미달");
             return;
           }
         }
@@ -204,10 +225,10 @@ void loop() {
   }
   
   
-  if (Serial.available() > 0) {
-    int a = Serial.parseInt();
-    if (a == 1) {
-      putIngredient();
-    }
-  }
+//  if (Serial.available() > 0) {
+//    int a = Serial.parseInt();
+//    if (a == 1) {
+//      putIngredient();
+//    }
+//  }
 }
