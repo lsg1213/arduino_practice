@@ -17,8 +17,97 @@ bool boil = false;
 SoftwareSerial mySerial(blueTx, blueRx);
 unsigned long cookStartTime = 0;
 
-void setting() {
-  mySerial.println("시작할 시각을 적어주세요 ex)0800, 1400");
+
+bool recommendReceipt() {
+  mySerial.println("1.된장찌개");
+  mySerial.println("2.김치찌개");
+  mySerial.println("3.콩나물국");
+  mySerial.println("0.뒤로가기");
+
+  // 각 요리 레시피 입력하기!
+  while(true) {
+    while(!mySerial.available());
+    switch(mySerial.parseInt()) {
+      case 1:
+        boil = false;
+        mySerial.println("1번 재료함:볶은쇠고기90g, 표고버섯15g, 된장85g");
+        mySerial.println("2번 재료함:재료X");
+        mySerial.println("3번 재료함:두부250g, 고춧가루2.2g");
+        mySerial.println("4번 재료함:청고추15g, 홍고추20g, 파20g");
+        receipt[2] = 4; //센불
+        receipt[3] = 10;  //중불
+        receipt[4] = 2;
+        numReceipt = 4;
+        mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
+        while(!mySerial.available());
+        switch(mySerial.parseInt()) {
+          case 0:
+            reset();
+            return true;
+          case 1:
+            break;
+          default:
+            mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+            break;
+        }
+        break;
+      case 2:
+        boil = true;
+        mySerial.println("1번 재료함:고춧가루2.2g");
+        mySerial.println("2번 재료함:참기름13g,볶은돼지고기150g");
+        mySerial.println("3번 재료함:볶은김치280g");
+        mySerial.println("4번 재료함:재료X");
+        mySerial.println("5번 재료함:소금2g,두부150g,파20g");
+        receipt[2] = 0;
+        receipt[3] = 6; //센불
+        receipt[4] = 30;  //중불
+        receipt[5] = 2;
+        numReceipt = 5;
+        mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
+        while(!mySerial.available());
+        switch(mySerial.parseInt()) {
+          case 0:
+            reset();
+            return true;
+          case 1:
+            break;
+          default:
+            mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+            break;
+        }
+        break;
+      case 3:
+        boil = false;
+        mySerial.println("1번 재료함:참기름 1큰술,콩나물 250g");
+        mySerial.println("2번 재료함:콩나물 250g"):
+        mySerial.println("3번 재료함:파1/2대,다진 마늘 1작은술,국간장 2큰술,소금 약간");
+        receipt[2] = 0;
+        receipt[3] = 25;  //중불
+        numReceipt = 3;
+        mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
+        while(!mySerial.available());
+        switch(mySerial.parseInt()) {
+          case 0:
+            reset();
+            return true;
+          case 1:
+            break;
+          default:
+            mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+            break;
+        }
+        break;
+      case 0:
+        //reset
+        return true;
+      default:
+        mySerial.println("잘못된 입력입니다. 다시 입력해주세요.");
+    }
+  }
+  return false;
+}
+void timeSetting() {
+  mySerial.println("일어날 시각을 적어주세요 ex)0800, 1400");
   while(true) {
     while(!mySerial.available());
     startTime = mySerial.parseInt();
@@ -30,6 +119,22 @@ void setting() {
       break;
     }
   }
+  mySerial.println("현재 시각을 적어주세요 ex)0800, 1400");
+  while(true) {
+    while(!mySerial.available());
+    now = mySerial.parseInt();
+    if (now / 100 > 24 or now < 0 or now % 100 > 59) {
+      mySerial.println("잘못된 시각을 입력했습니다. 다시 입력해주세요 ex) 0800, 1400");
+      continue;
+    } else {
+      now = (now / 100 * 60 * 60 * 1000) + (now % 100 * 60 * 1000);
+      break;
+    }
+  }
+  startTime = millis() + (startTime - now + 86400000) % 86400000;
+}
+void setting() {
+  
   mySerial.println("물이 끓으면 요리를 시작할까요? 맞으면 1 아니면 0");
   while(true) {
     while(!mySerial.available());
@@ -47,13 +152,13 @@ void setting() {
   numReceipt = 1;
   for (int i = 2 ; i <= 5 ; i++) {
     mySerial.print(i);
-    mySerial.println("번째 재료를 몇 분 후에 넣을까요? 만약 그만 넣으려면 0을 입력하세요");
+    mySerial.println("번째 재료를 몇 분 후에 넣을까요? 만약 그만 넣으려면 -1을 입력하세요");
     while(!mySerial.available());
     int Time = mySerial.parseInt();
-    if (Time > 1000 or Time < 0) {
-      mySerial.println("설정한 시간이 너무 크거나 작습니다.\n 다시 입력하세요. 1~1000");
+    if (Time > 1000 or Time < -1) {
+      mySerial.println("설정한 시간이 너무 크거나 작습니다.\n 다시 입력하세요. 0~1000");
       continue;
-    } else if (Time == 0) {
+    } else if (Time == -1) {
       break;
     }
     receipt[i] = Time;
@@ -66,22 +171,11 @@ void setting() {
     mySerial.print(receipt[i]);
     mySerial.println("분뒤에 투하");
   }
-  mySerial.println("현재 시각을 적어주세요 ex)0800, 1400");
-  while(true) {
-    while(!mySerial.available());
-    now = mySerial.parseInt();
-    if (now / 100 > 24 or now < 0 or now % 100 > 59) {
-      mySerial.println("잘못된 시각을 입력했습니다. 다시 입력해주세요 ex) 0800, 1400");
-      continue;
-    } else {
-      now = (now / 100 * 60 * 60 * 1000) + (now % 100 * 60 * 1000);
-      break;
-    }
-  }
-  startTime = millis() + (startTime - now + 86400000) % 86400000;
+  timeSetting();
   
   mySerial.println("작동을 시작합니다.");
 }
+
 void putIngredient() {
   // ----------------------------
   // 위쪽 모터 추가해야함
@@ -92,8 +186,8 @@ void putIngredient() {
   // motor2 숟가락 돌리는 모터
   int motor2_1 = 6;
   int motor2_2 = 7;
-  int pushTime = 5200; // ms
-  int pullTime = 5200; // ms
+  int pushTime = 5000; // ms
+  int pullTime = 5000; // ms
   int rotateTime = 2700; // ms
   digitalWrite(motor1_1,HIGH);
   digitalWrite(motor1_2,LOW);
@@ -102,7 +196,13 @@ void putIngredient() {
   digitalWrite(motor1_2,LOW);
   digitalWrite(motor2_1,HIGH);
   digitalWrite(motor2_2,LOW);
-  delay(rotateTime);
+  delay(rotateTime / 2);
+  digitalWrite(motor2_1,LOW);
+  digitalWrite(motor2_2,LOW);
+  delay(1000);
+  digitalWrite(motor2_1,HIGH);
+  digitalWrite(motor2_2,LOW);
+  delay(rotateTime / 2);
   digitalWrite(motor2_1,LOW);
   digitalWrite(motor2_2,LOW);
   digitalWrite(motor1_1,LOW);
@@ -116,6 +216,7 @@ bool menu() {
   mySerial.println("┌───┐");
   mySerial.println("│1 세팅│");
   mySerial.println("│2 취소│");
+  mySerial.println("│3 추천│");
   mySerial.println("└───┘");
   while (true) {
     while (!mySerial.available());
@@ -189,12 +290,18 @@ void loop() {
           setting();
           state = 1;
           mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
-          
           break;
         case 2:
           reset();
           mySerial.println("초기 상태로 돌아갑니다.");
           return;
+        case 3:
+          if(recommendReceipt()) {
+            reset();
+            return;
+          }
+          timeSetting();
+          break;
         default:
           mySerial.println("예기치 못한 에러 발생");
           Serial.println("예기치 못한 에러 발생");
@@ -204,7 +311,8 @@ void loop() {
       if (mySerial.available()) {
         if (mySerial.parseInt() == 0) {
           reset();
-        }
+          return;
+        }S
       }
       now = millis();
       if (startTime <= now) {
@@ -239,12 +347,4 @@ void loop() {
       Serial.println("예기치 못한 에러 발생");
       break;
   }
-  
-  
-//  if (Serial.available() > 0) {
-//    int a = Serial.parseInt();
-//    if (a == 1) {
-//      putIngredient();
-//    }
-//  }
 }
