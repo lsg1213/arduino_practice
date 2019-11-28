@@ -106,6 +106,24 @@
 
 #define melodyPin 9
 #define inductor 3  //inductor led 제어핀
+#define fire1 30
+#define fire2 120
+#define fire3 255
+
+// motor1 밀고 당기는 모터
+#define motor1_1 4
+#define motor1_2 5
+// motor2 숟가락 돌리는 모터
+#define motor2_1 6
+#define motor2_2 7
+// motor3 리볼버 돌리는 모터
+#define motor3_1 12
+#define motor3_2 13
+#define pushTime 4800 // ms
+#define pullTime 4800 // ms
+#define rotateTime 2700 // ms
+#define dropTime 450 // ms
+
 
 unsigned long previousTime = 0;
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();  //A5:SCL,A4:SDA,vin:5V,GND:GND
@@ -115,11 +133,8 @@ int state = 0;  //0: 초기 1: 대기(알람대기) 2: 요리
 int pick = 0;
 unsigned long startTime = 0;
 unsigned long now = 0;
-struct Receipt {
-  int receipt[6] = {0,0,0,0,0,0};
-  int fire[6] = {0,0,0,0,0,0};
-}Receipt;
 int receipt[6] = { 0, 0, 0, 0, 0, 0 };
+int fire[6] = {0,0,0,0,0,0};
 int numReceipt = 0;
 int num = 0;
 bool alarmState = false;
@@ -264,13 +279,13 @@ bool inductorSet(int strong) {
     analogWrite(inductor,0);
     break;
     case 1:
-    analogWrite(inductor,255/strong);
+    analogWrite(inductor,fire1);
     break;
     case 2:
-    analogWrite(inductor,255/strong);
+    analogWrite(inductor,fire2);
     break;
     case 3:
-    analogWrite(inductor,255/strong);
+    analogWrite(inductor,fire3);
     break;
     default:
     return false;
@@ -284,7 +299,7 @@ bool recommendReceipt() {
   mySerial.println("0.뒤로가기");
 
   // 각 요리 레시피 입력하기!
-  while (true) {re
+  while (true) {
     while (!mySerial.available())
       ;
     switch (mySerial.parseInt()) {
@@ -295,8 +310,11 @@ bool recommendReceipt() {
       mySerial.println("3번 재료함:두부250g, 고춧가루2.2g");
       mySerial.println("4번 재료함:청고추15g, 홍고추20g, 파20g");
       receipt[2] = 4; //센불
+      fire[2] = 3;
       receipt[3] = 10;  //중불
+      fire[3] = 2;
       receipt[4] = 2;
+      fire[4] = 2;
       numReceipt = 4;
       mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
       while (!mySerial.available())
@@ -321,8 +339,11 @@ bool recommendReceipt() {
       mySerial.println("5번 재료함:소금2g,두부150g,파20g");
       receipt[2] = 0;
       receipt[3] = 6; //센불
+      fire[3] = 3;
       receipt[4] = 30;  //중불
+      fire[4] = 2;
       receipt[5] = 2;
+      fire[5] = 2;
       numReceipt = 5;
       mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
       while (!mySerial.available())
@@ -425,6 +446,7 @@ void setting() {
     int Time = mySerial.parseInt();
     if (Time > 1000 or Time < -1) {
       mySerial.println("설정한 시간이 너무 크거나 작습니다.\n 다시 입력하세요. 0~1000");
+      i--;
       continue;
     } else if (Time == -1) {
       break;
@@ -433,6 +455,20 @@ void setting() {
     numReceipt++;
   }
   num = numReceipt;
+  for (int i = 1; i <= numReceipt; i++) {
+    mySerial.print(i);
+    mySerial.println("번째 재료를 넣을 때 불 강도를 어떻게 할까요?");
+    mySerial.println("0: 끄기, 1: 약, 2: 중, 3: 강");
+    while (!mySerial.available())
+      ;
+    int strong = mySerial.parseInt();
+    if (strong < 0 || strong > 3) {
+      mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+      i--;
+      continue;
+    }
+    fire[i] = strong;
+  }
   for (int i = 1; i <= numReceipt; i++) {
     mySerial.print(i);
     mySerial.print("번째 재료는 ");
@@ -445,18 +481,12 @@ void setting() {
 }
 
 void putIngredient() {
-  // ----------------------------
-  // 위쪽 모터 추가해야함
-  // ----------------------------
-  // motor1 밀고 당기는 모터
-  int motor1_1 = 4;
-  int motor1_2 = 5;
-  // motor2 숟가락 돌리는 모터
-  int motor2_1 = 6;
-  int motor2_2 = 7;
-  int pushTime = 5000; // ms
-  int pullTime = 5000; // ms
-  int rotateTime = 2700; // ms
+  digitalWrite(motor3_1, HIGH);
+  digitalWrite(motor3_2, LOW);
+  delay(dropTime);
+  digitalWrite(motor3_1, LOW);
+  digitalWrite(motor3_2, LOW);
+  delay(1000);
   digitalWrite(motor1_1, HIGH);
   digitalWrite(motor1_2, LOW);
   delay(pushTime);
@@ -475,7 +505,7 @@ void putIngredient() {
   digitalWrite(motor2_2, LOW);
   digitalWrite(motor1_1, LOW);
   digitalWrite(motor1_2, HIGH);
-  delay(pullTime);
+  delay(pushTime);
   digitalWrite(motor1_1, LOW);
   digitalWrite(motor1_2, LOW);
 }
@@ -483,8 +513,7 @@ void putIngredient() {
 bool menu() {
   mySerial.println("┌───┐");
   mySerial.println("│1 세팅│");
-  mySerial.println("│2 취소│");
-  mySerial.println("│3 추천│");
+  mySerial.println("│2 추천│");
   mySerial.println("└───┘");
   while (true) {
     while (!mySerial.available())
@@ -517,6 +546,25 @@ bool cooking(int num) {
     cookStartTime += a * 60 * 1000;
     mySerial.print(num - numReceipt + 1);
     mySerial.println("번째 재료를 투하합니다.");
+    switch(fire[numReceipt]) {
+      case 0:
+      mySerial.println("불을 끕니다.");
+      break;
+      case 1:
+      mySerial.println("불을 약으로 조절합니다.");
+      break;
+      case 2:
+      mySerial.println("불을 중으로 조절합니다.");
+      break;
+      case 3:
+      mySerial.println("불을 강으로 조절합니다.");
+      break;
+      default:
+      mySerial.println("불 조절 실패! 요리를 중지합니다.");
+      reset();
+      return;
+    }
+    inductorSet(fire[numReceipt]);
 
     putIngredient();
     numReceipt--;
@@ -535,8 +583,10 @@ void reset() {
     mySerial.println("인덕터 초기화에 문제가 생겼습니다.");
     return;
   }
-  for (int i = 0; i < 6; i++)
+  for (int i = 0; i < 6; i++){
     receipt[i] = 0;
+    fire[i] = 0;
+  }
   numReceipt = 0;
   boil = false;
 }
@@ -568,10 +618,6 @@ void loop() {
       alarmState = true;
       break;
     case 2:
-      reset();
-      mySerial.println("초기 상태로 돌아갑니다.");
-      return;
-    case 3:
       if (recommendReceipt()) {
         reset();
         return;
