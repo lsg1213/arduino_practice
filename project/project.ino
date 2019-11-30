@@ -119,10 +119,11 @@
 // motor3 리볼버 돌리는 모터
 #define motor3_1 12
 #define motor3_2 13
-#define pushTime 4800 // ms
-#define pullTime 4800 // ms
-#define rotateTime 2700 // ms
+#define pushTime 4500 // ms
+#define pullTime 4500 // ms
+#define rotateTime 2600 // ms
 #define dropTime 450 // ms
+#define tempUnit 25.0  // celsius degree
 
 
 unsigned long previousTime = 0;
@@ -139,6 +140,7 @@ int numReceipt = 0;
 int num = 0;
 bool alarmState = false;
 bool boil = false;
+int timeUnit = 60;
 SoftwareSerial mySerial(blueTx, blueRx);
 unsigned long cookStartTime = 0;
 
@@ -400,8 +402,8 @@ void timeSetting() {
       mySerial.println("잘못된 시각을 입력했습니다. 다시 입력해주세요 ex) 0800, 1400");
       continue;
     } else {
-      startTime = (startTime / 100 * 60 * 60 * 1000)
-          + (startTime % 100 * 60 * 1000);
+      startTime = (startTime / 100 * 60 * 1000 * timeUnit)
+          + (startTime % 100 * 1000 * timeUnit);
       break;
     }
   }
@@ -414,11 +416,11 @@ void timeSetting() {
       mySerial.println("잘못된 시각을 입력했습니다. 다시 입력해주세요 ex) 0800, 1400");
       continue;
     } else {
-      now = (now / 100 * 60 * 60 * 1000) + (now % 100 * 60 * 1000);
+      now = (now / 100 * 60 * 1000 * timeUnit) + (now % 100 * 1000 * timeUnit);
       break;
     }
   }
-  startTime = millis() + (startTime - now + 86400000) % 86400000;
+  startTime = millis() + (startTime - now + (1440000 * timeUnit) % (1440000 * timeUnit));
 }
 void setting() {
 
@@ -481,6 +483,7 @@ void setting() {
 }
 
 void putIngredient() {
+  //현재 14.75초 걸림
   digitalWrite(motor3_1, HIGH);
   digitalWrite(motor3_2, LOW);
   delay(dropTime);
@@ -514,12 +517,13 @@ bool menu() {
   mySerial.println("┌───┐");
   mySerial.println("│1 세팅│");
   mySerial.println("│2 추천│");
+  mySerial.println("│3 test│");
   mySerial.println("└───┘");
   while (true) {
     while (!mySerial.available())
       ;
     pick = mySerial.parseInt();
-    if (pick == 1 or pick == 2) {
+    if (pick == 1 or pick == 2 or pick == 3) {
       return false;
     }
     mySerial.println("잘못된 선택입니다. 다시 선택하세요.");
@@ -531,7 +535,7 @@ bool menu() {
 bool readTemp() {
   Serial.print(mlx.readObjectTempC());
   Serial.println("*C"); //테스팅용, 삭제 요망
-  if (mlx.readObjectTempC() > 85.0) {
+  if (mlx.readObjectTempC() > tempUnit) {
     return true;
   }
   return false;
@@ -540,13 +544,13 @@ bool readTemp() {
 bool cooking(int num) {
   unsigned int a = receipt[num - numReceipt + 1];
 
-  if (a * 60 * 1000 + cookStartTime <= millis()) {
+  if (a * 1000 * timeUnit + cookStartTime <= millis()) {
     Serial.println(a);
     check();
-    cookStartTime += a * 60 * 1000;
+    cookStartTime += a * 1000 * timeUnit;
     mySerial.print(num - numReceipt + 1);
     mySerial.println("번째 재료를 투하합니다.");
-    switch(fire[numReceipt]) {
+    switch(fire[num - numReceipt + 1]) {
       case 0:
       mySerial.println("불을 끕니다.");
       break;
@@ -564,7 +568,7 @@ bool cooking(int num) {
       reset();
       return;
     }
-    inductorSet(fire[numReceipt]);
+    inductorSet(fire[num - numReceipt + 1]);
 
     putIngredient();
     numReceipt--;
@@ -573,6 +577,7 @@ bool cooking(int num) {
   return numReceipt;
 }
 void reset() {
+  timeUnit = 60;
   state = 0;
   pick = 0;
   startTime = 0;
@@ -590,10 +595,31 @@ void reset() {
   numReceipt = 0;
   boil = false;
 }
+void testingMode() {
+  boil = true;
+  timeUnit = 1; //분 => 초단위로 수정
+  mySerial.println("온도가 25.0도 이상임을 감지하면 재료 투하 시작");
+  mySerial.println("1번째, 불: 강, 바로 투하");
+  mySerial.println("2번째, 불: 약, 20초 후 투하");
+  mySerial.println("3번째, 불: 강, 30초 후 투하");
+  mySerial.println("4번째, 불: 중, 25초 후 투하");
+  //재료 투하에 14.75초 걸림
+  startTime = millis();
+  fire[1] = 3;
+  receipt[2] = 20;
+  fire[2] = 1;
+  receipt[3] = 30;
+  fire[3] = 3;
+  receipt[4] = 25;
+  fire[4] = 2;
+  numReceipt = 4;
+  num = 4;
+}
 void setup() {
   Serial.begin(9600);
   mySerial.begin(9600);
   pinMode(9, OUTPUT); //buzzer
+  reset();
   mlx.begin();  //mlx모듈을 읽어들이기 시작합니다.
 }
 void check() {
@@ -623,6 +649,13 @@ void loop() {
         return;
       }
       timeSetting();
+      state = 1;
+      alarmState = true;
+      break;
+    case 3:
+      testingMode();
+      alarmState = true;
+      state = 1;
       break;
     default:
       mySerial.println("예기치 못한 에러 발생");
@@ -649,6 +682,9 @@ void loop() {
           break;
         }
         sing(2);
+        if (!alarmState) {
+          break;
+        }
       }
       mySerial.println("요리를 시작합니다.");
       cookStartTime = millis();
@@ -657,6 +693,8 @@ void loop() {
     }
     return;
   case 2:
+    bool pass = !boil;
+    
     if (boil) {
       // 온도 읽어오기
       unsigned long currentTime = millis();
@@ -666,15 +704,21 @@ void loop() {
         previousTime = currentTime;
         if (!readTemp()) {
           Serial.println("온도 미달");
-          return;
+          pass = false;
+        } else {
+          mySerial.println("물이 다 끓었습니다.");
+          boil = false;
+          pass = true;
         }
       }
     }
-
-    if (!cooking(num)) {
-      reset();
-      mySerial.println("요리 끝! 맛있게 드세요");
+    if (pass) {
+      if (!cooking(num)) {
+        reset();
+        mySerial.println("요리 끝! 맛있게 드세요");
+      }
     }
+    
     break;
   default:
     mySerial.println("예기치 못한 에러 발생");
