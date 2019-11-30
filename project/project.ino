@@ -1,19 +1,19 @@
 #include <Wire.h>
 #include <Adafruit_MLX90614.h>
-#include <SoftwareSerial.h> 
+#include <SoftwareSerial.h>
 
 /*
- Arduino Mario Bros Tunes
- With Piezo Buzzer and PWM
- 
- Connect the positive side of the Buzzer to pin 3,
- then the negative side to a 1k ohm resistor. Connect
- the other side of the 1 k ohm resistor to
- ground(GND) pin on the Arduino.
- 
- by: Dipto Pratyaksa
- last updated: 31/3/13
- */
+  Arduino Mario Bros Tunes
+  With Piezo Buzzer and PWM
+
+  Connect the positive side of the Buzzer to pin 3,
+  then the negative side to a 1k ohm resistor. Connect
+  the other side of the 1 k ohm resistor to
+  ground(GND) pin on the Arduino.
+
+  by: Dipto Pratyaksa
+  last updated: 31/3/13
+*/
 #define NOTE_B0  31
 #define NOTE_C1  33
 #define NOTE_CS1 35
@@ -106,22 +106,23 @@
 
 #define melodyPin 9
 #define inductor 3  //inductor led 제어핀
+#define refrigerator 2  //냉장고 led 제어핀
 #define fire1 30
 #define fire2 120
 #define fire3 255
 
 // motor1 밀고 당기는 모터
-#define motor1_1 4
-#define motor1_2 5
+#define motor1_1 5
+#define motor1_2 4
 // motor2 숟가락 돌리는 모터
 #define motor2_1 6
 #define motor2_2 7
-// motor3 리볼버 돌리는 모터
+// 3 리볼버 돌리는 모터
 #define motor3_1 12
 #define motor3_2 13
 #define pushTime 4500 // ms
 #define pullTime 4500 // ms
-#define rotateTime 2600 // ms
+#define rotateTime 2550 // ms
 #define dropTime 450 // ms
 #define tempUnit 25.0  // celsius degree
 
@@ -135,7 +136,7 @@ int pick = 0;
 unsigned long startTime = 0;
 unsigned long now = 0;
 int receipt[6] = { 0, 0, 0, 0, 0, 0 };
-int fire[6] = {0,0,0,0,0,0};
+int fire[6] = {0, 0, 0, 0, 0, 0};
 int numReceipt = 0;
 int num = 0;
 bool alarmState = false;
@@ -145,50 +146,54 @@ SoftwareSerial mySerial(blueTx, blueRx);
 unsigned long cookStartTime = 0;
 
 int melody[] = {
-NOTE_E7, NOTE_E7, 0, NOTE_E7, 0, NOTE_C7, NOTE_E7, 0,
-NOTE_G7, 0, 0, 0,
-NOTE_G6, 0, 0, 0,
+  NOTE_E7, NOTE_E7, 0, NOTE_E7, 0, NOTE_C7, NOTE_E7, 0,
+  NOTE_G7, 0, 0, 0,
+  NOTE_G6, 0, 0, 0,
 
-NOTE_C7, 0, 0, NOTE_G6, 0, 0, NOTE_E6, 0, 0, NOTE_A6, 0, NOTE_B6, 0, NOTE_AS6,
-    NOTE_A6, 0,
+  NOTE_C7, 0, 0, NOTE_G6, 0, 0, NOTE_E6, 0, 0, NOTE_A6, 0, NOTE_B6, 0, NOTE_AS6,
+  NOTE_A6, 0,
 
-    NOTE_G6, NOTE_E7, NOTE_G7,
-    NOTE_A7, 0, NOTE_F7, NOTE_G7, 0, NOTE_E7, 0, NOTE_C7,
-    NOTE_D7, NOTE_B6, 0, 0,
+  NOTE_G6, NOTE_E7, NOTE_G7,
+  NOTE_A7, 0, NOTE_F7, NOTE_G7, 0, NOTE_E7, 0, NOTE_C7,
+  NOTE_D7, NOTE_B6, 0, 0,
 
-    NOTE_C7, 0, 0, NOTE_G6, 0, 0, NOTE_E6, 0, 0, NOTE_A6, 0, NOTE_B6, 0,
-    NOTE_AS6, NOTE_A6, 0,
+  NOTE_C7, 0, 0, NOTE_G6, 0, 0, NOTE_E6, 0, 0, NOTE_A6, 0, NOTE_B6, 0,
+  NOTE_AS6, NOTE_A6, 0,
 
-    NOTE_G6, NOTE_E7, NOTE_G7,
-    NOTE_A7, 0, NOTE_F7, NOTE_G7, 0, NOTE_E7, 0, NOTE_C7,
-    NOTE_D7, NOTE_B6, 0, 0 };
+  NOTE_G6, NOTE_E7, NOTE_G7,
+  NOTE_A7, 0, NOTE_F7, NOTE_G7, 0, NOTE_E7, 0, NOTE_C7,
+  NOTE_D7, NOTE_B6, 0, 0
+};
 //Mario main them tempo
 int tempo[] = { 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-9, 9, 9, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
-9, 9, 9, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, };
+                12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+                9, 9, 9, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+                12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+                9, 9, 9, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12,
+              };
 //Underworld melody
 int underworld_melody[] = {
-NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
-NOTE_AS3, NOTE_AS4, 0, 0,
-NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
-NOTE_AS3, NOTE_AS4, 0, 0,
-NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
-NOTE_DS3, NOTE_DS4, 0, 0,
-NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
-NOTE_DS3, NOTE_DS4, 0, 0, NOTE_DS4, NOTE_CS4, NOTE_D4,
-NOTE_CS4, NOTE_DS4,
-NOTE_DS4, NOTE_GS3,
-NOTE_G3, NOTE_CS4,
-NOTE_C4, NOTE_FS4, NOTE_F4, NOTE_E3, NOTE_AS4, NOTE_A4,
-NOTE_GS4, NOTE_DS4, NOTE_B3,
-NOTE_AS3, NOTE_A3, NOTE_GS3, 0, 0, 0 };
+  NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
+  NOTE_AS3, NOTE_AS4, 0, 0,
+  NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
+  NOTE_AS3, NOTE_AS4, 0, 0,
+  NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
+  NOTE_DS3, NOTE_DS4, 0, 0,
+  NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
+  NOTE_DS3, NOTE_DS4, 0, 0, NOTE_DS4, NOTE_CS4, NOTE_D4,
+  NOTE_CS4, NOTE_DS4,
+  NOTE_DS4, NOTE_GS3,
+  NOTE_G3, NOTE_CS4,
+  NOTE_C4, NOTE_FS4, NOTE_F4, NOTE_E3, NOTE_AS4, NOTE_A4,
+  NOTE_GS4, NOTE_DS4, NOTE_B3,
+  NOTE_AS3, NOTE_A3, NOTE_GS3, 0, 0, 0
+};
 //Underwolrd tempo
 int underworld_tempo[] = { 12, 12, 12, 12, 12, 12, 6, 3, 12, 12, 12, 12, 12, 12,
-    6, 3, 12, 12, 12, 12, 12, 12, 6, 3, 12, 12, 12, 12, 12, 12, 6, 6, 18,
-    18, 18, 6, 6, 6, 6, 6, 6, 18, 18, 18, 18, 18, 18, 10, 10, 10, 10, 10,
-    10, 3, 3, 3 };
+                           6, 3, 12, 12, 12, 12, 12, 12, 6, 3, 12, 12, 12, 12, 12, 12, 6, 6, 18,
+                           18, 18, 6, 6, 6, 6, 6, 6, 18, 18, 18, 18, 18, 18, 10, 10, 10, 10, 10,
+                           10, 3, 3, 3
+                         };
 int song = 0;
 
 void sing(int s) {
@@ -276,21 +281,21 @@ void buzz(int targetPin, long frequency, long length) {
 }
 bool inductorSet(int strong) {
   // 0: 끄기, 1: 약, 2: 중, 3: 강
-  switch(strong) {
+  switch (strong) {
     case 0:
-    analogWrite(inductor,0);
-    break;
+      analogWrite(inductor, 0);
+      break;
     case 1:
-    analogWrite(inductor,fire1);
-    break;
+      analogWrite(inductor, fire1);
+      break;
     case 2:
-    analogWrite(inductor,fire2);
-    break;
+      analogWrite(inductor, fire2);
+      break;
     case 3:
-    analogWrite(inductor,fire3);
-    break;
+      analogWrite(inductor, fire3);
+      break;
     default:
-    return false;
+      return false;
   }
   return true;
 }
@@ -305,89 +310,89 @@ bool recommendReceipt() {
     while (!mySerial.available())
       ;
     switch (mySerial.parseInt()) {
-    case 1:
-      boil = false;
-      mySerial.println("1번 재료함:볶은쇠고기90g, 표고버섯15g, 된장85g");
-      mySerial.println("2번 재료함:재료X");
-      mySerial.println("3번 재료함:두부250g, 고춧가루2.2g");
-      mySerial.println("4번 재료함:청고추15g, 홍고추20g, 파20g");
-      receipt[2] = 4; //센불
-      fire[2] = 3;
-      receipt[3] = 10;  //중불
-      fire[3] = 2;
-      receipt[4] = 2;
-      fire[4] = 2;
-      numReceipt = 4;
-      mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
-      while (!mySerial.available())
-        ;
-      switch (mySerial.parseInt()) {
-      case 0:
-        reset();
-        return true;
       case 1:
+        boil = false;
+        mySerial.println("1번 재료함:볶은쇠고기90g, 표고버섯15g, 된장85g");
+        mySerial.println("2번 재료함:재료X");
+        mySerial.println("3번 재료함:두부250g, 고춧가루2.2g");
+        mySerial.println("4번 재료함:청고추15g, 홍고추20g, 파20g");
+        receipt[2] = 4; //센불
+        fire[2] = 3;
+        receipt[3] = 10;  //중불
+        fire[3] = 2;
+        receipt[4] = 2;
+        fire[4] = 2;
+        numReceipt = 4;
+        mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
+        while (!mySerial.available())
+          ;
+        switch (mySerial.parseInt()) {
+          case 0:
+            reset();
+            return true;
+          case 1:
+            break;
+          default:
+            mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+            break;
+        }
         break;
-      default:
-        mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+      case 2:
+        boil = true;
+        mySerial.println("1번 재료함:고춧가루2.2g");
+        mySerial.println("2번 재료함:참기름13g,볶은돼지고기150g");
+        mySerial.println("3번 재료함:볶은김치280g");
+        mySerial.println("4번 재료함:재료X");
+        mySerial.println("5번 재료함:소금2g,두부150g,파20g");
+        receipt[2] = 0;
+        receipt[3] = 6; //센불
+        fire[3] = 3;
+        receipt[4] = 30;  //중불
+        fire[4] = 2;
+        receipt[5] = 2;
+        fire[5] = 2;
+        numReceipt = 5;
+        mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
+        while (!mySerial.available())
+          ;
+        switch (mySerial.parseInt()) {
+          case 0:
+            reset();
+            return true;
+          case 1:
+            break;
+          default:
+            mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+            break;
+        }
         break;
-      }
-      break;
-    case 2:
-      boil = true;
-      mySerial.println("1번 재료함:고춧가루2.2g");
-      mySerial.println("2번 재료함:참기름13g,볶은돼지고기150g");
-      mySerial.println("3번 재료함:볶은김치280g");
-      mySerial.println("4번 재료함:재료X");
-      mySerial.println("5번 재료함:소금2g,두부150g,파20g");
-      receipt[2] = 0;
-      receipt[3] = 6; //센불
-      fire[3] = 3;
-      receipt[4] = 30;  //중불
-      fire[4] = 2;
-      receipt[5] = 2;
-      fire[5] = 2;
-      numReceipt = 5;
-      mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
-      while (!mySerial.available())
-        ;
-      switch (mySerial.parseInt()) {
+      case 3:
+        boil = false;
+        mySerial.println("1번 재료함:참기름 1큰술,콩나물 250g");
+        mySerial.println("2번 재료함:콩나물 250g");
+        mySerial.println("3번 재료함:파1/2대,다진 마늘 1작은술,국간장 2큰술,소금 약간");
+        receipt[2] = 0;
+        receipt[3] = 25;  //중불
+        numReceipt = 3;
+        mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
+        while (!mySerial.available())
+          ;
+        switch (mySerial.parseInt()) {
+          case 0:
+            reset();
+            return true;
+          case 1:
+            break;
+          default:
+            mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
+            break;
+        }
+        break;
       case 0:
-        reset();
+        //reset
         return true;
-      case 1:
-        break;
       default:
-        mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
-        break;
-      }
-      break;
-    case 3:
-      boil = false;
-      mySerial.println("1번 재료함:참기름 1큰술,콩나물 250g");
-      mySerial.println("2번 재료함:콩나물 250g");
-      mySerial.println("3번 재료함:파1/2대,다진 마늘 1작은술,국간장 2큰술,소금 약간");
-      receipt[2] = 0;
-      receipt[3] = 25;  //중불
-      numReceipt = 3;
-      mySerial.println("진행 하시겠습니까? 진행하면 1, 아니면 0을 입력해주세요");
-      while (!mySerial.available())
-        ;
-      switch (mySerial.parseInt()) {
-      case 0:
-        reset();
-        return true;
-      case 1:
-        break;
-      default:
-        mySerial.println("잘못 입력했습니다. 다시 입력해주세요.");
-        break;
-      }
-      break;
-    case 0:
-      //reset
-      return true;
-    default:
-      mySerial.println("잘못된 입력입니다. 다시 입력해주세요.");
+        mySerial.println("잘못된 입력입니다. 다시 입력해주세요.");
     }
   }
   return false;
@@ -403,7 +408,7 @@ void timeSetting() {
       continue;
     } else {
       startTime = (startTime / 100 * 60 * 1000 * timeUnit)
-          + (startTime % 100 * 1000 * timeUnit);
+                  + (startTime % 100 * 1000 * timeUnit);
       break;
     }
   }
@@ -481,7 +486,18 @@ void setting() {
 
   mySerial.println("작동을 시작합니다.");
 }
-
+void vibration() {
+  for (int i = 0 ; i < 2 ; i++) {
+    digitalWrite(motor2_1, HIGH);
+    digitalWrite(motor2_2, LOW);
+    delay(100);
+    digitalWrite(motor2_1, LOW);
+    digitalWrite(motor2_2, HIGH);
+    delay(100);
+  }
+  digitalWrite(motor2_1, LOW);
+  digitalWrite(motor2_2, LOW);
+}
 void putIngredient() {
   //현재 14.75초 걸림
   digitalWrite(motor3_1, HIGH);
@@ -492,7 +508,8 @@ void putIngredient() {
   delay(1000);
   digitalWrite(motor1_1, HIGH);
   digitalWrite(motor1_2, LOW);
-  delay(pushTime);
+  delay(pushTime - 400);
+  vibration();
   digitalWrite(motor1_1, LOW);
   digitalWrite(motor1_2, LOW);
   digitalWrite(motor2_1, HIGH);
@@ -550,23 +567,23 @@ bool cooking(int num) {
     cookStartTime += a * 1000 * timeUnit;
     mySerial.print(num - numReceipt + 1);
     mySerial.println("번째 재료를 투하합니다.");
-    switch(fire[num - numReceipt + 1]) {
+    switch (fire[num - numReceipt + 1]) {
       case 0:
-      mySerial.println("불을 끕니다.");
-      break;
+        mySerial.println("불을 끕니다.");
+        break;
       case 1:
-      mySerial.println("불을 약으로 조절합니다.");
-      break;
+        mySerial.println("불을 약으로 조절합니다.");
+        break;
       case 2:
-      mySerial.println("불을 중으로 조절합니다.");
-      break;
+        mySerial.println("불을 중으로 조절합니다.");
+        break;
       case 3:
-      mySerial.println("불을 강으로 조절합니다.");
-      break;
+        mySerial.println("불을 강으로 조절합니다.");
+        break;
       default:
-      mySerial.println("불 조절 실패! 요리를 중지합니다.");
-      reset();
-      return;
+        mySerial.println("불 조절 실패! 요리를 중지합니다.");
+        reset();
+        return false;
     }
     inductorSet(fire[num - numReceipt + 1]);
 
@@ -577,6 +594,7 @@ bool cooking(int num) {
   return numReceipt;
 }
 void reset() {
+  refrigeratorOff();
   timeUnit = 60;
   state = 0;
   pick = 0;
@@ -588,7 +606,13 @@ void reset() {
     mySerial.println("인덕터 초기화에 문제가 생겼습니다.");
     return;
   }
-  for (int i = 0; i < 6; i++){
+  digitalWrite(motor1_1, LOW);
+  digitalWrite(motor1_2, LOW);
+  digitalWrite(motor2_1, LOW);
+  digitalWrite(motor2_2, LOW);
+  digitalWrite(motor3_1, LOW);
+  digitalWrite(motor3_2, LOW);
+  for (int i = 0; i < 6; i++) {
     receipt[i] = 0;
     fire[i] = 0;
   }
@@ -622,6 +646,12 @@ void setup() {
   reset();
   mlx.begin();  //mlx모듈을 읽어들이기 시작합니다.
 }
+void refrigeratorOn() {
+  analogWrite(refrigerator, 255);
+}
+void refrigeratorOff() {
+  analogWrite(refrigerator, 0);
+}
 void check() {
   Serial.print("세팅 시간:");
   Serial.println(startTime);
@@ -634,95 +664,98 @@ void check() {
 }
 void loop() {
   switch (state) {
-  case 0:
-    menu();
-    switch (pick) {
-    case 1:
-      setting();
-      state = 1;
-      mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
-      alarmState = true;
-      break;
-    case 2:
-      if (recommendReceipt()) {
-        reset();
-        return;
+    case 0:
+      menu();
+      switch (pick) {
+        case 1:
+          setting();
+          state = 1;
+          mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
+          refrigeratorOn();
+          alarmState = true;
+          break;
+        case 2:
+          if (recommendReceipt()) {
+            reset();
+            return;
+          }
+          timeSetting();
+          state = 1;
+          alarmState = true;
+          break;
+        case 3:
+          testingMode();
+          alarmState = true;
+          state = 1;
+          break;
+        default:
+          mySerial.println("예기치 못한 에러 발생");
+          Serial.println("예기치 못한 에러 발생");
+          break;
       }
-      timeSetting();
-      state = 1;
-      alarmState = true;
-      break;
-    case 3:
-      testingMode();
-      alarmState = true;
-      state = 1;
+    case 1:
+      refrigeratorOn();
+      if (mySerial.available()) {
+        if (mySerial.parseInt() == 0) {
+          reset();
+          return;
+        }
+      }
+      now = millis();
+      if (startTime <= now) {
+        mySerial.println("기상 시간입니다. 알람을 끄려면 0을 눌러주세요");
+        while (alarmState) {
+          sing(1);
+          if (!alarmState) {
+            break;
+          }
+          sing(1);
+          if (!alarmState) {
+            break;
+          }
+          sing(2);
+          if (!alarmState) {
+            break;
+          }
+        }
+        mySerial.println("요리를 시작합니다.");
+        cookStartTime = millis();
+        refrigeratorOff();
+        state = 2;
+        break;
+      }
+      return;
+    case 2:
+      bool pass;
+      pass = !boil; 
+      if (boil) {
+        // 온도 읽어오기
+        unsigned long currentTime = millis();
+        // millis() 함수를 사용하여 현재 시간을 측정하고 저장
+        if (currentTime > previousTime + 500) {
+          // 0.5초마다 읽기
+          previousTime = currentTime;
+          if (!readTemp()) {
+            Serial.println("온도 미달");
+            pass = false;
+          } else {
+            mySerial.println("물이 다 끓었습니다.");
+            boil = false;
+            pass = true;
+          }
+        }
+      }
+      if (pass) {
+        if (!cooking(num)) {
+          reset();
+          mySerial.println("요리 끝! 맛있게 드세요");
+        }
+      }
+
       break;
     default:
       mySerial.println("예기치 못한 에러 발생");
       Serial.println("예기치 못한 에러 발생");
       break;
-    }
-  case 1:
-    if (mySerial.available()) {
-      if (mySerial.parseInt() == 0) {
-        reset();
-        return;
-      }
-    }
-    now = millis();
-    if (startTime <= now) {
-      mySerial.println("기상 시간입니다. 알람을 끄려면 0을 눌러주세요");
-      while (alarmState) {
-        sing(1);
-        if (!alarmState) {
-          break;
-        }
-        sing(1);
-        if (!alarmState) {
-          break;
-        }
-        sing(2);
-        if (!alarmState) {
-          break;
-        }
-      }
-      mySerial.println("요리를 시작합니다.");
-      cookStartTime = millis();
-      state = 2;
-      break;
-    }
-    return;
-  case 2:
-    bool pass = !boil;
-    
-    if (boil) {
-      // 온도 읽어오기
-      unsigned long currentTime = millis();
-      // millis() 함수를 사용하여 현재 시간을 측정하고 저장
-      if (currentTime > previousTime + 500) {
-        // 0.5초마다 읽기
-        previousTime = currentTime;
-        if (!readTemp()) {
-          Serial.println("온도 미달");
-          pass = false;
-        } else {
-          mySerial.println("물이 다 끓었습니다.");
-          boil = false;
-          pass = true;
-        }
-      }
-    }
-    if (pass) {
-      if (!cooking(num)) {
-        reset();
-        mySerial.println("요리 끝! 맛있게 드세요");
-      }
-    }
-    
-    break;
-  default:
-    mySerial.println("예기치 못한 에러 발생");
-    Serial.println("예기치 못한 에러 발생");
-    break;
   }
 }
