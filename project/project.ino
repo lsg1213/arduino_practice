@@ -138,7 +138,7 @@ unsigned long now = 0;
 int receipt[6] = { 0, 0, 0, 0, 0, 0 };
 int fire[6] = {0, 0, 0, 0, 0, 0};
 int numReceipt = 0;
-int num = 0;
+int num = 0, dropNum = 0;
 bool alarmState = false;
 bool boil = false;
 int timeUnit = 60;
@@ -492,6 +492,7 @@ void putIngredient() {
   digitalWrite(motor3_1, HIGH);
   digitalWrite(motor3_2, LOW);
   delay(dropTime);
+  dropNum++;
   digitalWrite(motor3_1, LOW);
   digitalWrite(motor3_2, LOW);
   delay(1000);
@@ -584,6 +585,7 @@ bool cooking(int num) {
 void reset() {
   refrigeratorOff();
   timeUnit = 60;
+  
   state = 0;
   pick = 0;
   startTime = 0;
@@ -593,10 +595,11 @@ void reset() {
     mySerial.println("인덕터 초기화에 문제가 생겼습니다.");
     return;
   }
-  digitalWrite(motor3_1,HIGH);
-  digitalWrite(motor3_2,LOW);
-  delay(dropTime * (6 - num));
+  digitalWrite(motor3_1,LOW);
+  digitalWrite(motor3_2,HIGH);
+  delay(dropTime * dropNum);
   num = 0;
+  dropNum = 0;
   digitalWrite(motor3_1,LOW);
   digitalWrite(motor3_2,LOW);
   digitalWrite(motor1_1, LOW);
@@ -713,6 +716,9 @@ void loop() {
           }
         }
         mySerial.println("요리를 시작합니다.");
+        if (boil) {
+          analogWrite(inductor, fire3);
+        }
         cookStartTime = millis();
         refrigeratorOff();
         state = 2;
