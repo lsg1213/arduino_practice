@@ -105,7 +105,7 @@
 #define NOTE_DS8 4978
 
 #define melodyPin 9
-#define inductor 3  //inductor led 제어핀
+#define inductor 6  //inductor led 제어핀
 #define refrigerator 2  //냉장고 led 제어핀
 #define fire1 30
 #define fire2 120
@@ -115,8 +115,8 @@
 #define motor1_1 5
 #define motor1_2 4
 // motor2 숟가락 돌리는 모터
-#define motor2_1 6
-#define motor2_2 7
+#define motor2_1 24
+#define motor2_2 26
 // 3 리볼버 돌리는 모터
 #define motor3_1 12
 #define motor3_2 13
@@ -497,7 +497,7 @@ void putIngredient() {
   delay(1000);
   digitalWrite(motor1_1, HIGH);
   digitalWrite(motor1_2, LOW);
-  delay(pushTime - 400);
+  delay(pushTime);
   digitalWrite(motor1_1, LOW);
   digitalWrite(motor1_2, LOW);
   digitalWrite(motor2_1, HIGH);
@@ -587,19 +587,22 @@ void reset() {
   state = 0;
   pick = 0;
   startTime = 0;
-  num = 0;
   now = 0;
   cookStartTime = 0;
   if (!inductorSet(0)) {
     mySerial.println("인덕터 초기화에 문제가 생겼습니다.");
     return;
   }
+  digitalWrite(motor3_1,HIGH);
+  digitalWrite(motor3_2,LOW);
+  delay(dropTime * (6 - num));
+  num = 0;
+  digitalWrite(motor3_1,LOW);
+  digitalWrite(motor3_2,LOW);
   digitalWrite(motor1_1, LOW);
   digitalWrite(motor1_2, LOW);
   digitalWrite(motor2_1, LOW);
   digitalWrite(motor2_2, LOW);
-  digitalWrite(motor3_1, LOW);
-  digitalWrite(motor3_2, LOW);
   for (int i = 0; i < 6; i++) {
     receipt[i] = 0;
     fire[i] = 0;
@@ -631,6 +634,8 @@ void setup() {
   Serial.begin(9600);
   mySerial.begin(9600);
   pinMode(9, OUTPUT); //buzzer
+  pinMode(24, OUTPUT);
+  pinMode(26, OUTPUT);
   reset();
   mlx.begin();  //mlx모듈을 읽어들이기 시작합니다.
 }
@@ -659,7 +664,6 @@ void loop() {
           setting();
           state = 1;
           mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
-          refrigeratorOn();
           alarmState = true;
           break;
         case 2:
@@ -669,12 +673,14 @@ void loop() {
           }
           timeSetting();
           state = 1;
+          mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
           alarmState = true;
           break;
         case 3:
           testingMode();
           alarmState = true;
           state = 1;
+          mySerial.println("대기 상태로 변경됩니다. 취소하시려면 0을 입력해주세요.");
           break;
         default:
           mySerial.println("예기치 못한 에러 발생");
