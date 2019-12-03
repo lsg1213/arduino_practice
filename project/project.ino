@@ -122,7 +122,7 @@
 #define motor3_2 13
 #define pushTime 4500 // ms
 #define pullTime 4500 // ms
-#define rotateTime 2550 // ms
+#define rotateTime 1250 // ms
 #define dropTime 450 // ms
 #define tempUnit 25.0  // celsius degree
 
@@ -486,18 +486,7 @@ void setting() {
 
   mySerial.println("작동을 시작합니다.");
 }
-void vibration() {
-  for (int i = 0 ; i < 2 ; i++) {
-    digitalWrite(motor2_1, HIGH);
-    digitalWrite(motor2_2, LOW);
-    delay(100);
-    digitalWrite(motor2_1, LOW);
-    digitalWrite(motor2_2, HIGH);
-    delay(100);
-  }
-  digitalWrite(motor2_1, LOW);
-  digitalWrite(motor2_2, LOW);
-}
+
 void putIngredient() {
   //현재 14.75초 걸림
   digitalWrite(motor3_1, HIGH);
@@ -509,18 +498,17 @@ void putIngredient() {
   digitalWrite(motor1_1, HIGH);
   digitalWrite(motor1_2, LOW);
   delay(pushTime - 400);
-  vibration();
   digitalWrite(motor1_1, LOW);
   digitalWrite(motor1_2, LOW);
   digitalWrite(motor2_1, HIGH);
   digitalWrite(motor2_2, LOW);
-  delay(rotateTime / 2);
+  delay(rotateTime);
   digitalWrite(motor2_1, LOW);
   digitalWrite(motor2_2, LOW);
   delay(1000);
-  digitalWrite(motor2_1, HIGH);
-  digitalWrite(motor2_2, LOW);
-  delay(rotateTime / 2);
+  digitalWrite(motor2_1, LOW);
+  digitalWrite(motor2_2, HIGH);
+  delay(rotateTime);
   digitalWrite(motor2_1, LOW);
   digitalWrite(motor2_2, LOW);
   digitalWrite(motor1_1, LOW);
@@ -628,7 +616,7 @@ void testingMode() {
   mySerial.println("3번째, 불: 강, 30초 후 투하");
   mySerial.println("4번째, 불: 중, 25초 후 투하");
   //재료 투하에 14.75초 걸림
-  startTime = millis();
+  startTime = millis() + 10000; //10초 후 시작
   fire[1] = 3;
   receipt[2] = 20;
   fire[2] = 1;
